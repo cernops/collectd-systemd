@@ -10,9 +10,13 @@ collectd-systemd
     :alt: Coverage
     :target: https://coveralls.io/github/mbachry/collectd-systemd?branch=master
 
-A `collectd`_ plugin which checks if given `systemd`_ services are in
-"running" state and sends `graphite`_ metrics with ``1.0`` or ``0.0``
-value.
+A `collectd`_ plugin which checks if given `systemd`_ services are one of
+* state "running"
+* state "reloading"
+* state "dead" with a service type is "oneshot"
+in each of these cases it sends sends `graphite`_ metrics of ``1.0``.
+Otherwise it will send a ``0.0`` value.
+
 
 The plugin is particularly useful together with `grafana's alerting`_.
 

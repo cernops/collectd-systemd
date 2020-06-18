@@ -46,6 +46,18 @@ class SystemD(object):
                 self.log_verbose('{} plugin: failed to monitor unit {}: {}'.format(self.plugin_name, name, e))
                 return 'broken'
 
+    def get_service_type(self, name):
+        unit = self.get_unit(name)
+        if not unit:
+            return 'broken'
+        else:
+            try:
+                return unit.Get('org.freedesktop.systemd1.Service', 'Type')
+            except dbus.exceptions.DBusException as e:
+                self.log_verbose('{} plugin: failed to find type unit {}: {}'.format(self.plugin_name, name, e))
+                return 'broken'
+
+
     def configure_callback(self, conf):
         for node in conf.children:
             vals = [str(v) for v in node.values]
@@ -72,14 +84,15 @@ class SystemD(object):
             full_name = name + '.service'
 
             state = self.get_service_state(full_name)
+            type = self.get_service_type(full_name)
             if state == 'broken':
                 self.log_verbose ('Unit {0} reported as broken. Reinitializing the connection to dbus & retrying.'.format(full_name))
                 self.init_dbus()
                 state = self.get_service_state(full_name)
 
-            value = (1.0 if state == 'running' or state == 'reload' else 0.0)
-            self.log_verbose('Sending value: {}.{}={} (state={})'
-                             .format(self.plugin_name, name, value, state))
+            value = (1.0 if state == 'running' or state == 'reload' or ( state == 'dead' and type == 'oneshot' ) else 0.0)
+            self.log_verbose('Sending value: {}.{}={} (state={}, type={})'
+                             .format(self.plugin_name, name, value, state, type))
             val = collectd.Values(
                 type='gauge',
                 plugin=self.plugin_name,
