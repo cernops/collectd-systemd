@@ -90,9 +90,9 @@ class SystemD(object):
                 self.init_dbus()
                 state = self.get_service_state(full_name)
 
-            value = (1.0 if state == 'running' or state == 'reload' or ( state == 'dead' and type == 'oneshot' ) else 0.0)
-            self.log_verbose('Sending value: {}.{}={} (state={}, type={})'
-                             .format(self.plugin_name, name, value, state, type))
+            value = (1.0 if state == 'running' or state == 'reload' or state == 'start' or ( state == 'dead' and type == 'oneshot' )  else 0.0)
+            self.log_verbose('Sending value: {}.{}={} (state={})'
+                             .format(self.plugin_name, name, value, state))
             val = collectd.Values(
                 type='gauge',
                 plugin=self.plugin_name,
