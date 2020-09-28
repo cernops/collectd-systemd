@@ -26,7 +26,7 @@ class SystemD(object):
         if name not in self.units:
             try:
                 unit = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
-                                                          self.manager.GetUnit(name)),
+                                                          self.manager.LoadUnit(name)),
                                       'org.freedesktop.DBus.Properties')
             except dbus.exceptions.DBusException as e:
                 collectd.warning('{} plugin: failed to monitor unit {}: {}'.format(
