@@ -1,7 +1,6 @@
 import dbus
 import collectd
 
-
 class SystemD(object):
     def __init__(self):
         self.plugin_name = 'systemd'
@@ -9,6 +8,7 @@ class SystemD(object):
         self.verbose_logging = False
         self.services = []
         self.units = {}
+        self.manager_properties = None
 
     def log_verbose(self, msg):
         if not self.verbose_logging:
@@ -57,6 +57,11 @@ class SystemD(object):
                 self.log_verbose('{} plugin: failed to find type unit {}: {}'.format(self.plugin_name, name, e))
                 return 'broken'
 
+    def get_system_state(self):
+        if self.manager_properties == None:
+            self.manager_properties = self.bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
+        state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
+        return state
 
     def configure_callback(self, conf):
         for node in conf.children:
@@ -78,8 +83,25 @@ class SystemD(object):
         self.log_verbose('Configured with services={}, interval={}'
                          .format(self.services, self.interval))
 
+    def send_system_state(self):
+        state = self.get_system_state()
+        value= 1 if state == "broken" or state == "degraded" else 0
+        self.log_verbose('Sending value: {}.systemd_state={} (state={}, type={})'
+                         .format(self.plugin_name, value, state, type))
+
+        stateval = collectd.Values(
+                type='boolean',
+                plugin=self.plugin_name,
+                plugin_instance='systemd_state',
+                type_instance='running',
+                values=[value])
+        stateval.dispatch()
+
     def read_callback(self):
         self.log_verbose('Read callback called')
+
+        self.send_system_state()
+
         for name in self.services:
             full_name = name + '.service'
 
@@ -100,7 +122,6 @@ class SystemD(object):
                 type_instance='running',
                 values=[value])
             val.dispatch()
-
 
 mon = SystemD()
 collectd.register_config(mon.configure_callback)
