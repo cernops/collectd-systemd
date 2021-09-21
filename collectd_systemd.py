@@ -21,12 +21,16 @@ class SystemD(object):
         self.manager = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
                                                           '/org/freedesktop/systemd1'),
                                       'org.freedesktop.systemd1.Manager')
+        self.manager.Subscribe()
 
-    def get_unit(self, name):
+    def get_unit(self, name, path=None):
         if name not in self.units:
+            if not path:
+                path = self.manager.LoadUnit(name)
+
             try:
                 unit = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
-                                                          self.manager.LoadUnit(name)),
+                                                          path),
                                       'org.freedesktop.DBus.Properties')
             except dbus.exceptions.DBusException as e:
                 collectd.warning('{} plugin: failed to monitor unit {}: {}'.format(
@@ -62,6 +66,27 @@ class SystemD(object):
             self.manager_properties = self.bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
         state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
         return state
+
+    def send_need_reload(self):
+        units = self.manager.ListUnits()
+        for unit in units:
+            name, _, _, _, _, _, path, _, _, _ = unit
+            unit = self.get_unit(name, path=path)
+            try:
+                need_reload = unit.Get('org.freedesktop.systemd1.Unit', 'NeedDaemonReload')
+            except dbus.exceptions.DBusException as e:
+                collectd.warning('{} plugin: failed to get unit properties {}: {}'.format(
+                    self.plugin_name, name, e))
+                return
+
+            val = collectd.Values(
+                    type='boolean',
+                    plugin=self.plugin_name,
+                    plugin_instance=name,
+                    type_instance='NeedDaemonReload',
+                    values=[need_reload],
+            )
+            val.dispatch()
 
     def configure_callback(self, conf):
         for node in conf.children:
@@ -101,6 +126,7 @@ class SystemD(object):
         self.log_verbose('Read callback called')
 
         self.send_system_state()
+        self.send_need_reload()
 
         for name in self.services:
             full_name = name + '.service'
