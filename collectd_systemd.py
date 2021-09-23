@@ -6,6 +6,7 @@ class SystemD(object):
         self.plugin_name = 'systemd'
         self.interval = 60.0
         self.verbose_logging = False
+        self.scan_needreload = False
         self.services = []
         self.units = {}
         self.manager_properties = None
@@ -97,6 +98,8 @@ class SystemD(object):
                 self.interval = float(vals[0])
             elif node.key == 'Verbose':
                 self.verbose_logging = (vals[0].lower() == 'true')
+            elif node.key == 'ScanNeedReload':
+                self.scan_needreload = (vals[0].lower() == 'true')
             else:
                 raise ValueError('{} plugin: Unknown config key: {}'
                                  .format(self.plugin_name, node.key))
@@ -126,7 +129,8 @@ class SystemD(object):
         self.log_verbose('Read callback called')
 
         self.send_system_state()
-        self.send_need_reload()
+        if self.scan_needreload:
+            self.send_need_reload()
 
         for name in self.services:
             full_name = name + '.service'
