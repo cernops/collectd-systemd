@@ -113,7 +113,7 @@ class SystemD(object):
 
     def send_system_state(self):
         state = self.get_system_state()
-        value= 1 if state == "broken" or state == "degraded" else 0
+        value = 0 if state == "broken" or state == "degraded" else 1
         self.log_verbose('Sending value: {}.systemd_state={} (state={}, type={})'
                          .format(self.plugin_name, value, state, type))
 
