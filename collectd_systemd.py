@@ -70,24 +70,32 @@ class SystemD(object):
 
     def send_need_reload(self):
         units = self.manager.ListUnits()
+        need_reload = False
         for unit in units:
             name, _, _, _, _, _, path, _, _, _ = unit
             unit = self.get_unit(name, path=path)
             try:
-                need_reload = unit.Get('org.freedesktop.systemd1.Unit', 'NeedDaemonReload')
+                rel = unit.Get('org.freedesktop.systemd1.Unit', 'NeedDaemonReload')
             except dbus.exceptions.DBusException as e:
                 collectd.warning('{} plugin: failed to get unit properties {}: {}'.format(
                     self.plugin_name, name, e))
-                return
+                rel = True
 
-            val = collectd.Values(
-                    type='boolean',
-                    plugin=self.plugin_name,
-                    plugin_instance=name,
-                    type_instance='NeedDaemonReload',
-                    values=[need_reload],
-            )
-            val.dispatch()
+            if rel:
+                collectd.info('{} plugin [info]: Unit needs reload: {}'.format(self.plugin_name, name))
+                need_reload = True
+
+        # 1 = good 0 = bad
+        need_reload = not need_reload
+
+        val = collectd.Values(
+                type='boolean',
+                plugin=self.plugin_name,
+                plugin_instance='needreload',
+                type_instance='NeedDaemonReload',
+                values=[need_reload],
+        )
+        val.dispatch()
 
     def configure_callback(self, conf):
         for node in conf.children:
