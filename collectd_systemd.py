@@ -22,7 +22,6 @@ class SystemD(object):
         self.manager = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
                                                           '/org/freedesktop/systemd1'),
                                       'org.freedesktop.systemd1.Manager')
-        self.manager.Subscribe()
 
     def get_unit(self, name, path=None):
         if name not in self.units:
@@ -65,11 +64,25 @@ class SystemD(object):
     def get_system_state(self):
         if self.manager_properties == None:
             self.manager_properties = self.bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
+        try:
+            state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
+        except dbus.exceptions.DBusException as e:
+            self.log_verbose('{} plugin: failed to monitor system state: {}'.format(self.plugin_name, e))
+            return 'broken'
+
         return state
 
     def send_need_reload(self):
-        units = self.manager.ListUnits()
+        try:
+            units = self.manager.ListUnits()
+        except dbus.exceptions.DBusException as e:
+            collectd.warning('{} plugin: failed to list units: {}'.format(
+                self.plugin_name, e))
+            # Manager got invalidated by a reexec. Reinit
+            self.manager = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
+                                                              '/org/freedesktop/systemd1'),
+                                          'org.freedesktop.systemd1.Manager')
+            return
         need_reload = False
         for unit in units:
             name, _, _, _, _, _, path, _, _, _ = unit
