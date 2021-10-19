@@ -68,6 +68,8 @@ class SystemD(object):
             state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
         except dbus.exceptions.DBusException as e:
             self.log_verbose('{} plugin: failed to monitor system state: {}'.format(self.plugin_name, e))
+            # Reset for re-trying
+            self.manager_properties = None
             return 'broken'
 
         return state
@@ -78,11 +80,7 @@ class SystemD(object):
         except dbus.exceptions.DBusException as e:
             collectd.warning('{} plugin: failed to list units: {}'.format(
                 self.plugin_name, e))
-            # Manager got invalidated by a reexec. Reinit
-            self.manager = dbus.Interface(self.bus.get_object('org.freedesktop.systemd1',
-                                                              '/org/freedesktop/systemd1'),
-                                          'org.freedesktop.systemd1.Manager')
-            return
+            return False
         need_reload = False
         for unit in units:
             name, _, _, _, _, _, path, _, _, _ = unit
@@ -109,6 +107,7 @@ class SystemD(object):
                 values=[need_reload],
         )
         val.dispatch()
+        return True
 
     def configure_callback(self, conf):
         for node in conf.children:
@@ -134,6 +133,11 @@ class SystemD(object):
 
     def send_system_state(self):
         state = self.get_system_state()
+        if state == "broken":
+            # Retry once more
+            self.init_dbus()
+            state = self.get_system_state()
+
         value = 0 if state == "broken" or state == "degraded" else 1
         self.log_verbose('Sending value: {}.systemd_state={} (state={}, type={})'
                          .format(self.plugin_name, value, state, type))
@@ -151,7 +155,11 @@ class SystemD(object):
 
         self.send_system_state()
         if self.scan_needreload:
-            self.send_need_reload()
+            ok = self.send_need_reload()
+            if not ok:
+                # Dbus connection was broken, reconnect and retry
+                self.init_dbus()
+                self.send_need_reload()
 
         for name in self.services:
             full_name = name + '.service'
