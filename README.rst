@@ -76,6 +76,8 @@ Following configuration options are supported:
   multiple services with spaces. Multiple services lines can
   be specified when they will be concatinated.
 
+* ``ScanNeedReload``: monitor the needreload status of all units (off by default)
+
 * ``Interval``: check interval. It's ok to keep the default (60 seconds)
 
 * ``Verbose``: enable verbose logging (off by default)
