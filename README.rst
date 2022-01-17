@@ -78,6 +78,8 @@ Following configuration options are supported:
 
 * ``ScanNeedReload``: monitor the needreload status of all units (off by default)
 
+* ``NeedReloadIgnore``: One or more systemd units to ignore the NeedReload status of (empty by default)
+
 * ``Interval``: check interval. It's ok to keep the default (60 seconds)
 
 * ``Verbose``: enable verbose logging (off by default)
