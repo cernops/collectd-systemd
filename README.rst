@@ -78,7 +78,9 @@ Following configuration options are supported:
 
 * ``ScanNeedReload``: monitor the needreload status of all units (off by default)
 
-* ``NeedReloadIgnore``: One or more systemd units to ignore the NeedReload status of (empty by default)
+* ``NeedReloadIgnore``: Space separated list of one or more systemd units to ignore the NeedReload status of (empty by default) e.g.::
+
+    NeedReloadIgnore "service1.service" "tmp.mount"
 
 * ``Interval``: check interval. It's ok to keep the default (60 seconds)
 
