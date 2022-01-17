@@ -99,6 +99,7 @@ systemd-systemd-state/boolean-running
 Each node will be report this value. If the value is less than one check
 
     systemctl status 
+
     systemctl --state=failed
 
 systemd-needreload/boolean-NeedDaemonReload
