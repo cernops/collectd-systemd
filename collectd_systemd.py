@@ -7,6 +7,7 @@ class SystemD(object):
         self.interval = 60.0
         self.verbose_logging = False
         self.scan_needreload = False
+        self.needreload_ignore = []
         self.services = []
         self.units = {}
         self.manager_properties = None
@@ -84,6 +85,8 @@ class SystemD(object):
         need_reload = False
         for unit in units:
             name, _, _, _, _, _, path, _, _, _ = unit
+            if name in self.needreload_ignore:
+                continue
             unit = self.get_unit(name, path=path)
             try:
                 rel = unit.Get('org.freedesktop.systemd1.Unit', 'NeedDaemonReload')
@@ -120,6 +123,8 @@ class SystemD(object):
                 self.verbose_logging = (vals[0].lower() == 'true')
             elif node.key == 'ScanNeedReload':
                 self.scan_needreload = (vals[0].lower() == 'true')
+            elif node.key == 'NeedReloadIgnore':
+                self.needreload_ignore.extend(vals)
             else:
                 raise ValueError('{} plugin: Unknown config key: {}'
                                  .format(self.plugin_name, node.key))

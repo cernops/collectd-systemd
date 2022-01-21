@@ -78,6 +78,10 @@ Following configuration options are supported:
 
 * ``ScanNeedReload``: monitor the needreload status of all units (off by default)
 
+* ``NeedReloadIgnore``: Space separated list of one or more systemd units to ignore the NeedReload status of (empty by default) e.g.::
+
+    NeedReloadIgnore "service1.service" "tmp.mount"
+
 * ``Interval``: check interval. It's ok to keep the default (60 seconds)
 
 * ``Verbose``: enable verbose logging (off by default)
@@ -89,14 +93,14 @@ Metrics and Debug
 systemd-sshd/gauge-running
 ##########################
 
-Each configured service (e.g. sshd) will be reported. If the value is less than one check
+Each configured service (e.g. sshd) will be reported. If the value is less than one check::
 
     systemctl status sshd
 
 systemd-systemd-state/boolean-running
 #####################################
 
-Each node will be report this value. If the value is less than one check
+Each node will be report this value. If the value is less than one check::
 
     systemctl status 
 
@@ -105,11 +109,11 @@ Each node will be report this value. If the value is less than one check
 systemd-needreload/boolean-NeedDaemonReload
 ###########################################
 
-Each node will report this value. If less than one then identify stale unit by looking in collectd log file for an entry
+Each node will report this value. If less than one then identify stale unit by looking in collectd log file for an entry::
 
     systemd plugin [info]: Unit needs reload: certmgr-renew.timer
 
-or by running the command
+or by running the command::
 
     for U in $(systemctl --no-pager --no-legend | awk '{print $1}' ) ; do
       systemctl show -p NeedDaemonReload -- $U  | grep -q yes && echo $U
