@@ -1,5 +1,6 @@
 import dbus
 import collectd
+import re
 
 class SystemD(object):
     def __init__(self):
@@ -8,6 +9,7 @@ class SystemD(object):
         self.verbose_logging = False
         self.scan_needreload = False
         self.needreload_ignore = []
+        self.state_ignore_regex = []
         self.services = []
         self.units = {}
         self.manager_properties = None
@@ -63,17 +65,35 @@ class SystemD(object):
                 return 'broken'
 
     def get_system_state(self):
-        if self.manager_properties == None:
-            self.manager_properties = self.bus.get_object('org.freedesktop.systemd1', '/org/freedesktop/systemd1')
-        try:
-            state = self.manager_properties.Get('org.freedesktop.systemd1.Manager', 'SystemState', dbus_interface='org.freedesktop.DBus.Properties')
-        except dbus.exceptions.DBusException as e:
-            self.log_verbose('{} plugin: failed to monitor system state: {}'.format(self.plugin_name, e))
-            # Reset for re-trying
-            self.manager_properties = None
-            return 'broken'
+        """
+        Returns of system state of "broken" if more than one unit is in failed
+        state otherwise the systemd is considered "running"
+        """
+        system_state = 'running'
 
-        return state
+        try:
+            units = self.manager.ListUnits()
+        except dbus.exceptions.DBusException as e:
+            collectd.warning('{} plugin: failed to list units: {}'.format(
+                self.plugin_name, e))
+            system_state = 'broken'
+
+        for unit in units:
+            name, _, _, _, _, _, path, _, _, _ = unit
+            if any(re.search(pattern, name) for pattern in self.state_ignore_regex):
+                continue
+            unit = self.get_unit(name, path=path)
+            try:
+                state = unit.Get('org.freedesktop.systemd1.Unit', 'ActiveState')
+            except dbus.exceptions.DBusException as e:
+                collectd.warning('{} plugin: failed to get unit status {}: {}'.format(
+                    self.plugin_name, name, e))
+                systemd_state = 'broken'
+            if state == 'failed':
+                collectd.info('{} systemd_state plugin [info]: Unit status: {}, {}'.format(self.plugin_name, name,state))
+                system_state = 'broken'
+
+        return system_state
 
     def send_need_reload(self):
         try:
@@ -125,6 +145,9 @@ class SystemD(object):
                 self.scan_needreload = (vals[0].lower() == 'true')
             elif node.key == 'NeedReloadIgnore':
                 self.needreload_ignore.extend(vals)
+            elif node.key == 'StateIgnoreRegex':
+                self.state_ignore_regex.extend(vals)
+
             else:
                 raise ValueError('{} plugin: Unknown config key: {}'
                                  .format(self.plugin_name, node.key))
