@@ -82,6 +82,8 @@ Following configuration options are supported:
 
     NeedReloadIgnore "service1.service" "tmp.mount"
 
+* ``StateIgnoreRegex``: Regexes of unit names to ignore from the global systemd status e.g. '^user@\d+\.service$'
+
 * ``Interval``: check interval. It's ok to keep the default (60 seconds)
 
 * ``Verbose``: enable verbose logging (off by default)
