@@ -76,7 +76,7 @@ class SystemD(object):
         except dbus.exceptions.DBusException as e:
             collectd.warning('{} plugin: failed to list units: {}'.format(
                 self.plugin_name, e))
-            system_state = 'broken'
+            return 'broken'
 
         for unit in units:
             name, _, _, _, _, _, path, _, _, _ = unit
