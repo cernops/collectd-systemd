@@ -15,7 +15,7 @@ setup(
     description='Collectd plugin to monitor systemd services',
     license='MIT',
     url='https://github.com/cernops/collectd-systemd/',
-    version='1.0.0',
+    version='2.0.0',
     author='Steve Traylen',
     author_email='steve.traylen@cern.ch',
     long_description=read("README.rst"),
