@@ -2,13 +2,16 @@
 collectd-systemd
 ================
 
-.. image:: https://travis-ci.org/mbachry/collectd-systemd.svg?branch=master
-    :alt: Build status
-    :target: https://travis-ci.org/mbachry/collectd-systemd
+This module was originally hosted at
 
-.. image:: https://coveralls.io/repos/github/mbachry/collectd-systemd/badge.svg?branch=master
-    :alt: Coverage
-    :target: https://coveralls.io/github/mbachry/collectd-systemd?branch=master
+https://github.com/mbachry/collectd-systemd
+
+but this has been unmaintained now for many years
+
+The module is now maintained at
+
+https://github.com/cernops/collectd-systemd
+
 
 A `collectd`_ plugin which checks if given `systemd`_ services are one of
 * state "running"
